@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>CRM Olimphia</title>
+<style>
+  :root{
+    --bg: #0E1512;
+    --surface: #16211C;
+    --surface-2: #1D2A24;
+    --border: #2B3B33;
+    --border-strong: #3D4F46;
+    --text: #E9EFEA;
+    --text-muted: #8FA098;
+    --text-dim: #647169;
+    --frog: #5FD98A;
+    --frog-dim: #2E4A3A;
+    --frog-text: #A9F0C4;
+    --warn: #E0B454;
+    --danger: #E0705F;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  .app{
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px;
+  }
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom: 20px;
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px;
+  }
+  .brand-mark{
+    width:28px; height:28px; border-radius:8px;
+    background: var(--frog-dim);
+    display:flex; align-items:center; justify-content:center;
+    font-size:15px; color: var(--frog-text); font-weight:600;
+  }
+  .brand-title{font-size:16px; font-weight:600; letter-spacing:-0.01em;}
+  .brand-sub{font-size:12px; color:var(--text-muted); margin-top:1px;}
+  .actions{display:flex; gap:8px; align-items:center;}
+  .btn{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    display:flex; align-items:center; gap:6px;
+  }
+  .btn:hover{ border-color: var(--border-strong); }
+  .status-pill{
+    font-size:12px; color:var(--text-muted); padding:6px 10px;
+  }
+  .metrics{
+    display:grid; grid-template-columns: repeat(5, 1fr); gap:12px;
+    margin-bottom: 18px;
+  }
+  .metric-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .metric-card.alert{
+    border-color: var(--danger);
+    background: linear-gradient(180deg, rgba(224,112,95,0.08), transparent);
+  }
+  .metric-value{
+    font-size: 26px; font-weight:700; letter-spacing:-0.02em; line-height:1;
+    margin-bottom: 6px;
+  }
+  .metric-card.alert .metric-value{ color: var(--danger); }
+  .metric-label{
+    font-size: 11.5px; color: var(--text-muted); line-height:1.35;
+  }
+  .metric-sub{
+    font-size: 10.5px; color: var(--text-dim); margin-top:4px;
+  }
+  @media (max-width: 900px){
+    .metrics{ grid-template-columns: repeat(2, 1fr); }
+  }
+  .filterbar{
+    display:flex; align-items:center; gap:10px; margin-bottom:16px;
+    flex-wrap: wrap;
+  }
+  .filterbar label{
+    font-size:11.5px; color:var(--text-muted); display:flex; align-items:center; gap:6px;
+  }
+  .filterbar input[type="date"]{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 7px;
+    padding: 5px 8px;
+    font-size: 12.5px;
+    font-family: inherit;
+    color-scheme: dark;
+  }
+  .filterbar .btn{ padding: 5px 10px; font-size:12.5px; }
+  .sort-btn{
+    background:none; border:none; color:var(--text-dim); cursor:pointer;
+    font-size:12px; padding:2px 4px; border-radius:5px; line-height:1;
+  }
+  .sort-btn:hover{ color:var(--text); background: var(--surface-2); }
+  .btn.active{ border-color: var(--frog); color: var(--frog-text); background: var(--frog-dim); }
+  .list-controls{
+    display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap;
+  }
+  .list-controls select{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 7px;
+    padding: 6px 8px;
+    font-size: 12.5px;
+    font-family: inherit;
+  }
+  .list-table{
+    width:100%; border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .list-table th{
+    text-align:left; font-size:11px; color:var(--text-muted); font-weight:600;
+    padding: 10px 12px; border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .list-table td{
+    padding: 10px 12px; font-size:12.5px; border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .list-table tr:last-child td{ border-bottom:none; }
+  .list-name{ font-weight:600; }
+  .list-phone{ color:var(--text-muted); font-size:11.5px; }
+  .list-resumo{ color:var(--text-muted); max-width:340px; }
+  .list-status-select{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 11.5px;
+    font-family: inherit;
+  }
+  .list-empty{ padding: 30px; text-align:center; color:var(--text-dim); font-size:13px; }
+  .status-chips{ display:flex; gap:6px; flex-wrap:wrap; }
+  .status-chip{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: 20px;
+    padding: 5px 11px;
+    font-size: 11.5px;
+    cursor: pointer;
+  }
+  .status-chip.active{
+    border-color: var(--frog); color: var(--frog-text); background: var(--frog-dim);
+  }
+  .phone-link{
+    color: var(--text-muted);
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .phone-link:hover{ color: var(--frog-text); text-decoration: underline; }
+  .login-screen{
+    min-height: 100vh;
+    display:flex; align-items:center; justify-content:center;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(95,217,138,0.07), transparent 45%),
+      radial-gradient(circle at 80% 75%, rgba(95,217,138,0.05), transparent 40%),
+      var(--bg);
+    padding: 20px;
+  }
+  .login-box{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 38px 34px 30px;
+    width: 100%;
+    max-width: 340px;
+    box-shadow: 0 20px 60px -20px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.02) inset;
+    position: relative;
+    overflow: hidden;
+  }
+  .login-box::before{
+    content:"";
+    position:absolute; top:0; left:0; right:0; height:3px;
+    background: linear-gradient(90deg, transparent, var(--frog), transparent);
+  }
+  .login-box .brand{
+    display:flex; flex-direction:column; align-items:center;
+    text-align:center; margin-bottom: 26px;
+  }
+  .login-box .brand-mark{
+    width:44px; height:44px; border-radius:12px; font-size:20px;
+    background: linear-gradient(160deg, var(--frog-dim), var(--surface-2));
+    border: 1px solid var(--border-strong);
+    margin-bottom: 12px;
+  }
+  .login-box .brand-title{ font-size:17px; }
+  .login-box .brand-sub{ margin-top:4px; }
+  .login-field{ margin-bottom: 16px; }
+  .login-field label{
+    display:block; font-size:11px; font-weight:600; letter-spacing:0.03em;
+    text-transform: uppercase; color:var(--text-dim); margin-bottom:6px;
+  }
+  .login-field input{
+    width:100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 9px;
+    padding: 11px 12px;
+    font-size: 13.5px;
+    font-family: inherit;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .login-field input::placeholder{ color: var(--text-dim); }
+  .login-field input:focus{
+    outline:none; border-color: var(--frog);
+    box-shadow: 0 0 0 3px rgba(95,217,138,0.12);
+  }
+  .login-btn{
+    width:100%;
+    background: var(--frog);
+    border: none;
+    color: #0E1512;
+    border-radius: 9px;
+    padding: 11px;
+    font-size: 13.5px;
+    font-weight:700;
+    cursor:pointer;
+    margin-top: 8px;
+    transition: filter .15s ease, transform .05s ease;
+  }
+  .login-btn:hover:not(:disabled){ filter: brightness(1.08); }
+  .login-btn:active:not(:disabled){ transform: scale(0.99); }
+  .login-btn:disabled{ opacity:0.55; cursor:default; }
+  .login-error{
+    color: var(--danger); font-size:12px; margin-top:14px; text-align:center;
+    background: rgba(224,112,95,0.08);
+    border: 1px solid rgba(224,112,95,0.3);
+    border-radius: 8px; padding: 8px 10px;
+  }
+  .hidden{ display:none !important; }
+  .board{
+    display:flex; gap:14px; overflow-x:auto; padding-bottom:12px;
+    align-items:flex-start;
+  }
+  .column{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    min-width: 240px;
+    max-width: 240px;
+    flex-shrink:0;
+    display:flex;
+    flex-direction:column;
+    max-height: calc(100vh - 130px);
+  }
+  .column-head{
+    padding: 12px 12px 10px;
+    border-bottom: 1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .column-title{font-size:12.5px; font-weight:600; letter-spacing:0.01em;}
+  .column-count{
+    font-size:11px; color:var(--text-dim);
+    background: var(--surface-2);
+    border-radius: 20px; padding: 1px 8px;
+  }
+  .column-body{
+    padding:8px; overflow-y:auto; flex:1; min-height:60px;
+  }
+  .column-body.dragover{ background: var(--frog-dim); border-radius:8px; }
+  .card{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 11px;
+    margin-bottom: 8px;
+    cursor: grab;
+    transition: border-color .12s ease;
+  }
+  .card:hover{ border-color: var(--border-strong); }
+  .card.dragging{ opacity:0.4; }
+  .card-name{font-size:13px; font-weight:600; margin:0 0 2px;}
+  .card-phone{font-size:11.5px; color:var(--text-muted); margin:0 0 6px;}
+  .card-resumo{
+    font-size:11.5px; color:var(--text-muted); line-height:1.45;
+    margin: 6px 0 6px;
+    display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .card-resumo.expanded{ -webkit-line-clamp: unset; }
+  .card-foot{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-top:6px; padding-top:6px; border-top:1px solid var(--border);
+  }
+  .card-time{font-size:10.5px; color:var(--text-dim);}
+  .badge-pausado{
+    font-size:9.5px; color:var(--warn); border:1px solid var(--warn);
+    border-radius:5px; padding:1px 5px;
+  }
+  .empty-col{
+    font-size:11.5px; color:var(--text-dim); text-align:center; padding:20px 8px;
+  }
+  .loading, .error{
+    color: var(--text-muted); font-size:13px; padding:40px; text-align:center;
+  }
+  .error{ color: var(--danger); }
+  ::-webkit-scrollbar{ width:6px; height:6px; }
+  ::-webkit-scrollbar-thumb{ background: var(--border-strong); border-radius:4px; }
+</style>
+</head>
+<body>
+<div id="loginScreen" class="login-screen">
+  <div class="login-box">
+    <div class="brand">
+      <div class="brand-mark">O</div>
+      <div style="margin-top:8px;">
+        <div class="brand-title">CRM Olimphia</div>
+        <div class="brand-sub">Entre para continuar</div>
+      </div>
+    </div>
+    <div class="login-field">
+      <label>E-mail</label>
+      <input type="email" id="loginEmail" placeholder="seu@email.com" autocomplete="username">
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="login-btn" id="loginBtn">Entrar</button>
+    <div class="login-error hidden" id="loginError"></div>
+  </div>
+</div>
+
+<div class="app hidden" id="appRoot">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">O</div>
+      <div>
+        <div class="brand-title">CRM Olimphia</div>
+        <div class="brand-sub" id="subtitle">Carregando atendimentos...</div>
+      </div>
+    </div>
+    <div class="actions">
+      <span class="status-pill" id="lastSync"></span>
+      <button class="btn" id="viewToggleBtn" onclick="toggleView()">Ver em lista</button>
+    </div>
+  </div>
+  <div class="filterbar">
+    <label>De <input type="date" id="dateFrom"></label>
+    <label>Até <input type="date" id="dateTo"></label>
+    <button class="btn" onclick="clearDateFilter()">Limpar filtro</button>
+  </div>
+  <div id="metricsContainer"></div>
+  <div id="boardContainer">
+    <div class="loading">Carregando dados do Supabase...</div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://pvbywavtkcicbtqtdhuz.supabase.co";
+const SUPABASE_KEY = "sb_publishable_0Io5w04LJPCP0cV0LdM2-Q_sHngYnf2";
+const TABLE = "dados_cliente";
+
+const COLUMNS = [
+  { key: "novo_contato", label: "Sem contato" },
+  { key: "em_negociacao", label: "Em atendimento" },
+  { key: "transferido_humano", label: "Atendimento com humano" },
+  { key: "agendamento_marcado", label: "Consulta agendada" },
+  { key: "confirmacao_agendamento", label: "Consulta confirmada" },
+  { key: "reagendamento", label: "Reagendamento" },
+  { key: "atendimento_finalizado", label: "Atendimento finalizado" }
+];
+
+const LEGACY_MAP = {
+  "sem_interesse": "atendimento_finalizado",
+  "aguardando_retorno": "atendimento_finalizado"
+};
+
+let records = [];
+let dateFrom = null;
+let dateTo = null;
+let viewMode = 'kanban';
+let listStatusFilters = new Set(); // empty = show all
+let listSortDir = 'desc';
+const columnSort = {}; // key -> 'asc' | 'desc'
+COLUMNS.forEach(c => columnSort[c.key] = 'desc');
+
+function toggleView(){
+  viewMode = viewMode === 'kanban' ? 'list' : 'kanban';
+  document.getElementById("viewToggleBtn").textContent = viewMode === 'kanban' ? 'Ver em lista' : 'Ver em kanban';
+  render();
+}
+
+function getVisibleRecords(){
+  return records.filter(r => {
+    if(!dateFrom && !dateTo) return true;
+    if(!r.ultimo_contato) return false;
+    const t = new Date(r.ultimo_contato).getTime();
+    if(dateFrom && t < new Date(dateFrom).getTime()) return false;
+    if(dateTo && t > new Date(dateTo).getTime() + 86400000 - 1) return false;
+    return true;
+  });
+}
+
+function applyDateFilter(){
+  dateFrom = document.getElementById("dateFrom").value || null;
+  dateTo = document.getElementById("dateTo").value || null;
+  render();
+  renderMetrics();
+}
+
+function clearDateFilter(){
+  document.getElementById("dateFrom").value = "";
+  document.getElementById("dateTo").value = "";
+  dateFrom = null;
+  dateTo = null;
+  render();
+  renderMetrics();
+}
+
+function toggleSort(key){
+  columnSort[key] = columnSort[key] === 'desc' ? 'asc' : 'desc';
+  render();
+}
+
+function headers(extra){
+  return Object.assign({
+    "apikey": SUPABASE_KEY,
+    "Authorization": "Bearer " + SUPABASE_KEY
+  }, extra || {});
+}
+
+function normalizeStatus(s){
+  const clean = (s || "").toString().trim().toLowerCase();
+  if (LEGACY_MAP[clean]) return LEGACY_MAP[clean];
+  const match = COLUMNS.find(c => c.key.toLowerCase() === clean);
+  if (match) return match.key;
+  return "novo_contato";
+}
+
+function timeAgo(iso){
+  if(!iso) return "sem contato";
+  const d = new Date(iso);
+  const diffMs = Date.now() - d.getTime();
+  const days = Math.floor(diffMs / 86400000);
+  if (days <= 0) return "hoje";
+  if (days === 1) return "ontem";
+  if (days < 30) return days + "d atrás";
+  const months = Math.floor(days/30);
+  return months + "m atrás";
+}
+
+const STUCK_EXCLUDE = ["agendamento_marcado", "confirmacao_agendamento", "atendimento_finalizado"];
+const ONE_DAY_MS = 86400000;
+
+function daysSince(iso){
+  if(!iso) return Infinity;
+  return (Date.now() - new Date(iso).getTime()) / ONE_DAY_MS;
+}
+
+function computeMetrics(){
+  const records = getVisibleRecords();
+  const total = records.length;
+
+  const stuck = records.filter(r => {
+    const status = normalizeStatus(r.status_crm);
+    return !STUCK_EXCLUDE.includes(status) && daysSince(r.ultimo_contato) > 1;
+  });
+
+  const sevenDaysAgo = Date.now() - 7 * ONE_DAY_MS;
+  const newContacts7d = records.filter(r => r.created_at && new Date(r.created_at).getTime() >= sevenDaysAgo);
+
+  const agendados = records.filter(r => {
+    const s = normalizeStatus(r.status_crm);
+    return s === "agendamento_marcado" || s === "confirmacao_agendamento" || s === "reagendamento";
+  });
+
+  const finalizadosOuAgendados = records.filter(r => {
+    const s = normalizeStatus(r.status_crm);
+    return s === "agendamento_marcado" || s === "confirmacao_agendamento" || s === "reagendamento" || s === "atendimento_finalizado";
+  });
+  const conversao = total > 0 ? Math.round((finalizadosOuAgendados.length / total) * 100) : 0;
+
+  const pausados = records.filter(r => r.pausado);
+
+  return { total, stuck, newContacts7d, agendados, conversao, pausados };
+}
+
+function renderMetrics(){
+  const m = computeMetrics();
+  const container = document.getElementById("metricsContainer");
+  container.innerHTML = `
+    <div class="metrics">
+      <div class="metric-card ${m.stuck.length > 0 ? 'alert' : ''}">
+        <div class="metric-value">${m.stuck.length}</div>
+        <div class="metric-label">Parados há +1 dia</div>
+        <div class="metric-sub">fora de agendado/finalizado</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">${m.newContacts7d.length}</div>
+        <div class="metric-label">Novos contatos</div>
+        <div class="metric-sub">últimos 7 dias</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">${m.agendados.length}</div>
+        <div class="metric-label">Consultas agendadas</div>
+        <div class="metric-sub">agendado + reagendamento</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">${m.conversao}%</div>
+        <div class="metric-label">Taxa de conversão</div>
+        <div class="metric-sub">leads que chegaram a agendar</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">${m.pausados.length}</div>
+        <div class="metric-label">Pausados</div>
+        <div class="metric-sub">atendimento automático travado</div>
+      </div>
+    </div>
+  `;
+}
+
+async function loadData(){
+  document.getElementById("boardContainer").innerHTML = '<div class="loading">Carregando dados do Supabase...</div>';
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?select=*&order=ultimo_contato.desc`, {
+      headers: headers()
+    });
+    if(!res.ok){
+      const t = await res.text();
+      throw new Error("HTTP " + res.status + ": " + t);
+    }
+    records = await res.json();
+    render();
+    renderMetrics();
+    document.getElementById("subtitle").textContent = records.length + " atendimentos";
+    document.getElementById("lastSync").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-BR");
+  }catch(err){
+    document.getElementById("boardContainer").innerHTML =
+      '<div class="error">Não foi possível carregar os dados.<br>' + err.message + '</div>';
+    document.getElementById("subtitle").textContent = "Erro ao carregar";
+  }
+}
+
+function render(){
+  if(viewMode === 'list'){
+    renderListView();
+    return;
+  }
+  const board = document.createElement("div");
+  board.className = "board";
+  const visible = getVisibleRecords();
+
+  COLUMNS.forEach(col => {
+    let items = visible.filter(r => normalizeStatus(r.status_crm) === col.key);
+    const dir = columnSort[col.key];
+    items = items.slice().sort((a, b) => {
+      const ta = a.ultimo_contato ? new Date(a.ultimo_contato).getTime() : 0;
+      const tb = b.ultimo_contato ? new Date(b.ultimo_contato).getTime() : 0;
+      return dir === 'asc' ? ta - tb : tb - ta;
+    });
+
+    const column = document.createElement("div");
+    column.className = "column";
+    column.dataset.status = col.key;
+
+    const head = document.createElement("div");
+    head.className = "column-head";
+    head.innerHTML = `
+      <span class="column-title">${col.label}</span>
+      <span style="display:flex; align-items:center; gap:6px;">
+        <button class="sort-btn" title="Ordenar por último contato" data-key="${col.key}">${dir === 'asc' ? '↑' : '↓'}</button>
+        <span class="column-count">${items.length}</span>
+      </span>
+    `;
+    head.querySelector(".sort-btn").addEventListener("click", () => toggleSort(col.key));
+    column.appendChild(head);
+
+    const body = document.createElement("div");
+    body.className = "column-body";
+    body.dataset.status = col.key;
+
+    if(items.length === 0){
+      const empty = document.createElement("div");
+      empty.className = "empty-col";
+      empty.textContent = "Nenhum atendimento aqui";
+      body.appendChild(empty);
+    }
+
+    items.forEach(rec => body.appendChild(buildCard(rec)));
+
+    body.addEventListener("dragover", e => {
+      e.preventDefault();
+      body.classList.add("dragover");
+    });
+    body.addEventListener("dragleave", () => body.classList.remove("dragover"));
+    body.addEventListener("drop", e => {
+      e.preventDefault();
+      body.classList.remove("dragover");
+      const id = e.dataTransfer.getData("text/plain");
+      handleDrop(id, col.key, body);
+    });
+
+    column.appendChild(body);
+    board.appendChild(column);
+  });
+
+  const container = document.getElementById("boardContainer");
+  container.innerHTML = "";
+  container.appendChild(board);
+}
+
+function renderListView(){
+  const visible = getVisibleRecords();
+  const filtered = listStatusFilters.size === 0
+    ? visible
+    : visible.filter(r => listStatusFilters.has(normalizeStatus(r.status_crm)));
+
+  const sorted = filtered.slice().sort((a, b) => {
+    const ta = a.ultimo_contato ? new Date(a.ultimo_contato).getTime() : 0;
+    const tb = b.ultimo_contato ? new Date(b.ultimo_contato).getTime() : 0;
+    return listSortDir === 'asc' ? ta - tb : tb - ta;
+  });
+
+  const container = document.getElementById("boardContainer");
+  container.innerHTML = "";
+
+  const controls = document.createElement("div");
+  controls.className = "list-controls";
+  controls.innerHTML = `
+    <div class="status-chips" id="statusChips">
+      <button class="status-chip ${listStatusFilters.size === 0 ? 'active' : ''}" data-key="all">Todas as etapas</button>
+      ${COLUMNS.map(c => `<button class="status-chip ${listStatusFilters.has(c.key) ? 'active' : ''}" data-key="${c.key}">${c.label}</button>`).join("")}
+    </div>
+    <button class="btn" id="listSortBtn">${listSortDir === 'asc' ? '↑ Mais antigo primeiro' : '↓ Mais recente primeiro'}</button>
+    <span class="status-pill">${sorted.length} atendimento(s)</span>
+  `;
+  container.appendChild(controls);
+
+  controls.querySelectorAll(".status-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      const key = chip.dataset.key;
+      if(key === 'all'){
+        listStatusFilters.clear();
+      } else if(listStatusFilters.has(key)){
+        listStatusFilters.delete(key);
+      } else {
+        listStatusFilters.add(key);
+      }
+      render();
+    });
+  });
+  controls.querySelector("#listSortBtn").addEventListener("click", () => {
+    listSortDir = listSortDir === 'asc' ? 'desc' : 'asc';
+    render();
+  });
+
+  if(sorted.length === 0){
+    const empty = document.createElement("div");
+    empty.className = "list-empty";
+    empty.textContent = "Nenhum atendimento encontrado com esse filtro.";
+    container.appendChild(empty);
+    return;
+  }
+
+  const table = document.createElement("table");
+  table.className = "list-table";
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Telefone</th>
+        <th>Resumo</th>
+        <th>Último contato</th>
+        <th>Etapa</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
+  const tbody = table.querySelector("tbody");
+
+  sorted.forEach(rec => {
+    const tr = document.createElement("tr");
+    const currentStatus = normalizeStatus(rec.status_crm);
+    const selectOptions = COLUMNS.map(c =>
+      `<option value="${c.key}" ${c.key === currentStatus ? 'selected' : ''}>${c.label}</option>`
+    ).join("");
+    const pausadoBadge = rec.pausado ? '<span class="badge-pausado">pausado</span>' : '';
+
+    tr.innerHTML = `
+      <td class="list-name">${escapeHtml(rec.nomewpp || "Sem nome")}</td>
+      <td class="list-phone phone-link">${escapeHtml(rec.telefone || "")}</td>
+      <td class="list-resumo">${escapeHtml(rec.resumo_lead || "Sem resumo disponível.")}</td>
+      <td>${timeAgo(rec.ultimo_contato)}</td>
+      <td><select class="list-status-select" data-id="${rec.id}">${selectOptions}</select></td>
+      <td>${pausadoBadge}</td>
+    `;
+    tr.querySelector(".list-phone").addEventListener("click", () => openWhatsapp(rec.telefone));
+    tr.querySelector(".list-status-select").addEventListener("change", e => {
+      performStatusChange(rec.id, e.target.value);
+    });
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  container.appendChild(table);
+}
+
+function buildCard(rec){
+  const card = document.createElement("div");
+  card.className = "card";
+  card.draggable = true;
+  card.dataset.id = rec.id;
+
+  const pausadoBadge = rec.pausado ? '<span class="badge-pausado">pausado</span>' : '';
+
+  card.innerHTML = `
+    <p class="card-name">${escapeHtml(rec.nomewpp || "Sem nome")}</p>
+    <p class="card-phone phone-link" data-phone="${escapeHtml(rec.telefone || "")}">${escapeHtml(rec.telefone || "")}</p>
+    <p class="card-resumo">${escapeHtml(rec.resumo_lead || "Sem resumo disponível.")}</p>
+    <div class="card-foot">
+      <span class="card-time">${timeAgo(rec.ultimo_contato)}</span>
+      ${pausadoBadge}
+    </div>
+  `;
+
+  card.querySelector(".card-phone").addEventListener("click", (e) => {
+    e.stopPropagation();
+    openWhatsapp(rec.telefone);
+  });
+
+  card.querySelector(".card-resumo").addEventListener("click", (e) => {
+    e.target.classList.toggle("expanded");
+  });
+
+  card.addEventListener("dragstart", e => {
+    e.dataTransfer.setData("text/plain", rec.id);
+    card.classList.add("dragging");
+  });
+  card.addEventListener("dragend", () => card.classList.remove("dragging"));
+
+  return card;
+}
+
+async function performStatusChange(id, newStatus){
+  const rec = records.find(r => String(r.id) === String(id));
+  if(!rec) return;
+  const oldStatus = normalizeStatus(rec.status_crm);
+  if(oldStatus === newStatus) return;
+
+  const oldPausado = rec.pausado;
+  const newPausado = newStatus === "transferido_humano" ? true : false;
+
+  rec.status_crm = newStatus;
+  rec.pausado = newPausado;
+  render();
+  renderMetrics();
+
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?id=eq.${id}`, {
+      method: "PATCH",
+      headers: headers({
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+      }),
+      body: JSON.stringify({ status_crm: newStatus, pausado: newPausado })
+    });
+    if(!res.ok){
+      const t = await res.text();
+      throw new Error("HTTP " + res.status + ": " + t);
+    }
+  }catch(err){
+    rec.status_crm = oldStatus;
+    rec.pausado = oldPausado;
+    render();
+    renderMetrics();
+    alert("Não foi possível salvar a mudança: " + err.message);
+  }
+}
+
+async function handleDrop(id, newStatus, bodyEl){
+  performStatusChange(id, newStatus);
+}
+
+function openWhatsapp(phone){
+  const digits = (phone || "").replace(/\D/g, "");
+  if(!digits) return;
+  window.open(`https://wa.me/${digits}`, "_blank");
+}
+
+function escapeHtml(str){
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+async function attemptLogin(){
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  const btn = document.getElementById("loginBtn");
+  const errorEl = document.getElementById("loginError");
+  errorEl.classList.add("hidden");
+
+  if(!email || !password){
+    errorEl.textContent = "Preencha e-mail e senha.";
+    errorEl.classList.remove("hidden");
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Entrando...";
+
+  try{
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if(!res.ok || !data.access_token){
+      throw new Error(data.error_description || data.msg || "E-mail ou senha inválidos.");
+    }
+    document.getElementById("loginScreen").classList.add("hidden");
+    document.getElementById("appRoot").classList.remove("hidden");
+    document.getElementById("dateFrom").addEventListener("change", applyDateFilter);
+    document.getElementById("dateTo").addEventListener("change", applyDateFilter);
+    loadData();
+  }catch(err){
+    errorEl.textContent = err.message;
+    errorEl.classList.remove("hidden");
+  }finally{
+    btn.disabled = false;
+    btn.textContent = "Entrar";
+  }
+}
+
+document.getElementById("loginBtn").addEventListener("click", attemptLogin);
+document.getElementById("loginPassword").addEventListener("keydown", e => {
+  if(e.key === "Enter") attemptLogin();
+});
+</script>
+</body>
+</html>
