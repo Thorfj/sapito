@@ -59,7 +59,7 @@
     font-size:12px; color:var(--text-muted); padding:6px 10px;
   }
   .metrics{
-    display:grid; grid-template-columns: repeat(5, 1fr); gap:12px;
+    display:grid; grid-template-columns: repeat(6, 1fr); gap:12px;
     margin-bottom: 18px;
   }
   .metric-card{
@@ -83,8 +83,8 @@
   .metric-sub{
     font-size: 10.5px; color: var(--text-dim); margin-top:4px;
   }
-  @media (max-width: 900px){
-    .metrics{ grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 1100px){
+    .metrics{ grid-template-columns: repeat(3, 1fr); }
   }
   .filterbar{
     display:flex; align-items:center; gap:10px; margin-bottom:16px;
@@ -311,6 +311,20 @@
     font-size:9.5px; color:var(--warn); border:1px solid var(--warn);
     border-radius:5px; padding:1px 5px;
   }
+  .badge-confirmado{
+    font-size:9.5px; color:var(--frog-text); border:1px solid var(--frog);
+    border-radius:5px; padding:1px 5px;
+  }
+  .badge-retorno{
+    font-size:9.5px; color:var(--danger); border:1px solid var(--danger);
+    border-radius:5px; padding:1px 5px;
+  }
+  .card-servico{
+    font-size:11px; color:var(--frog-text); margin:0 0 3px; font-weight:600;
+  }
+  .card-consulta{
+    font-size:11px; color:var(--text-muted); margin:0 0 6px;
+  }
   .empty-col{
     font-size:11.5px; color:var(--text-dim); text-align:center; padding:20px 8px;
   }
@@ -374,13 +388,15 @@
 const SUPABASE_URL = "https://pvbywavtkcicbtqtdhuz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_0Io5w04LJPCP0cV0LdM2-Q_sHngYnf2";
 const TABLE = "dados_cliente";
+const SERVICES_TABLE = "servicos";
+let servicesMap = {}; // nome_servico -> recorrencia_dias
 
 const COLUMNS = [
   { key: "novo_contato", label: "Sem contato" },
   { key: "em_negociacao", label: "Em atendimento" },
   { key: "transferido_humano", label: "Atendimento com humano" },
   { key: "agendamento_marcado", label: "Consulta agendada" },
-  { key: "confirmacao_agendamento", label: "Consulta confirmada" },
+  { key: "consulta_confirmada", label: "Consulta confirmada" },
   { key: "reagendamento", label: "Reagendamento" },
   { key: "atendimento_finalizado", label: "Atendimento finalizado" }
 ];
@@ -464,12 +480,20 @@ function timeAgo(iso){
   return months + "m atrás";
 }
 
-const STUCK_EXCLUDE = ["agendamento_marcado", "confirmacao_agendamento", "atendimento_finalizado"];
+const STUCK_EXCLUDE = ["agendamento_marcado", "consulta_confirmada", "atendimento_finalizado"];
 const ONE_DAY_MS = 86400000;
 
 function daysSince(iso){
   if(!iso) return Infinity;
   return (Date.now() - new Date(iso).getTime()) / ONE_DAY_MS;
+}
+
+function isReturnDue(rec){
+  if(!rec.servico_realizado || !rec.data_ultima_consulta_realizada) return false;
+  if(rec.lembrete_retorno_enviado) return false;
+  const recorrencia = servicesMap[rec.servico_realizado];
+  if(recorrencia === undefined) return false;
+  return daysSince(rec.data_ultima_consulta_realizada) >= recorrencia;
 }
 
 function computeMetrics(){
@@ -486,18 +510,20 @@ function computeMetrics(){
 
   const agendados = records.filter(r => {
     const s = normalizeStatus(r.status_crm);
-    return s === "agendamento_marcado" || s === "confirmacao_agendamento" || s === "reagendamento";
+    return s === "agendamento_marcado" || s === "consulta_confirmada" || s === "reagendamento";
   });
 
   const finalizadosOuAgendados = records.filter(r => {
     const s = normalizeStatus(r.status_crm);
-    return s === "agendamento_marcado" || s === "confirmacao_agendamento" || s === "reagendamento" || s === "atendimento_finalizado";
+    return s === "agendamento_marcado" || s === "consulta_confirmada" || s === "reagendamento" || s === "atendimento_finalizado";
   });
   const conversao = total > 0 ? Math.round((finalizadosOuAgendados.length / total) * 100) : 0;
 
   const pausados = records.filter(r => r.pausado);
 
-  return { total, stuck, newContacts7d, agendados, conversao, pausados };
+  const retornoPendente = records.filter(r => isReturnDue(r));
+
+  return { total, stuck, newContacts7d, agendados, conversao, pausados, retornoPendente };
 }
 
 function renderMetrics(){
@@ -525,6 +551,11 @@ function renderMetrics(){
         <div class="metric-label">Taxa de conversão</div>
         <div class="metric-sub">leads que chegaram a agendar</div>
       </div>
+      <div class="metric-card ${m.retornoPendente.length > 0 ? 'alert' : ''}">
+        <div class="metric-value">${m.retornoPendente.length}</div>
+        <div class="metric-label">Retorno pendente</div>
+        <div class="metric-sub">passou da recorrência do serviço</div>
+      </div>
       <div class="metric-card">
         <div class="metric-value">${m.pausados.length}</div>
         <div class="metric-label">Pausados</div>
@@ -537,14 +568,22 @@ function renderMetrics(){
 async function loadData(){
   document.getElementById("boardContainer").innerHTML = '<div class="loading">Carregando dados do Supabase...</div>';
   try{
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?select=*&order=ultimo_contato.desc`, {
-      headers: headers()
-    });
-    if(!res.ok){
-      const t = await res.text();
-      throw new Error("HTTP " + res.status + ": " + t);
+    const [clientsRes, servicesRes] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?select=*&order=ultimo_contato.desc`, { headers: headers() }),
+      fetch(`${SUPABASE_URL}/rest/v1/${SERVICES_TABLE}?select=*`, { headers: headers() })
+    ]);
+    if(!clientsRes.ok){
+      const t = await clientsRes.text();
+      throw new Error("HTTP " + clientsRes.status + ": " + t);
     }
-    records = await res.json();
+    records = await clientsRes.json();
+
+    servicesMap = {};
+    if(servicesRes.ok){
+      const services = await servicesRes.json();
+      services.forEach(s => { servicesMap[s.nome_servico] = s.recorrencia_dias; });
+    }
+
     render();
     renderMetrics();
     document.getElementById("subtitle").textContent = records.length + " atendimentos";
@@ -684,6 +723,8 @@ function renderListView(){
       <tr>
         <th>Nome</th>
         <th>Telefone</th>
+        <th>Serviço</th>
+        <th>Consulta</th>
         <th>Resumo</th>
         <th>Último contato</th>
         <th>Etapa</th>
@@ -701,14 +742,19 @@ function renderListView(){
       `<option value="${c.key}" ${c.key === currentStatus ? 'selected' : ''}>${c.label}</option>`
     ).join("");
     const pausadoBadge = rec.pausado ? '<span class="badge-pausado">pausado</span>' : '';
+    const confirmadoBadge = rec.confirmacao_enviada ? '<span class="badge-confirmado">confirmado</span>' : '';
+    const retornoBadge = isReturnDue(rec) ? '<span class="badge-retorno">retorno pendente</span>' : '';
+    const servico = rec.servico_realizado || rec.servico_agendado || "—";
 
     tr.innerHTML = `
       <td class="list-name">${escapeHtml(rec.nomewpp || "Sem nome")}</td>
       <td class="list-phone phone-link">${escapeHtml(rec.telefone || "")}</td>
+      <td>${escapeHtml(servico)}</td>
+      <td>${rec.data_consulta ? formatDate(rec.data_consulta) : "—"}</td>
       <td class="list-resumo">${escapeHtml(rec.resumo_lead || "Sem resumo disponível.")}</td>
       <td>${timeAgo(rec.ultimo_contato)}</td>
       <td><select class="list-status-select" data-id="${rec.id}">${selectOptions}</select></td>
-      <td>${pausadoBadge}</td>
+      <td>${confirmadoBadge}${retornoBadge}${pausadoBadge}</td>
     `;
     tr.querySelector(".list-phone").addEventListener("click", () => openWhatsapp(rec.telefone));
     tr.querySelector(".list-status-select").addEventListener("change", e => {
@@ -721,6 +767,12 @@ function renderListView(){
   container.appendChild(table);
 }
 
+function formatDate(iso){
+  if(!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString("pt-BR");
+}
+
 function buildCard(rec){
   const card = document.createElement("div");
   card.className = "card";
@@ -728,14 +780,26 @@ function buildCard(rec){
   card.dataset.id = rec.id;
 
   const pausadoBadge = rec.pausado ? '<span class="badge-pausado">pausado</span>' : '';
+  const confirmadoBadge = rec.confirmacao_enviada ? '<span class="badge-confirmado">confirmado</span>' : '';
+  const retornoBadge = isReturnDue(rec) ? '<span class="badge-retorno">retorno pendente</span>' : '';
+
+  const servico = rec.servico_realizado || rec.servico_agendado;
+  const servicoLine = servico ? `<p class="card-servico">${escapeHtml(servico)}</p>` : '';
+
+  const consultaLine = rec.data_consulta
+    ? `<p class="card-consulta">Consulta: ${formatDate(rec.data_consulta)}</p>` : '';
 
   card.innerHTML = `
     <p class="card-name">${escapeHtml(rec.nomewpp || "Sem nome")}</p>
     <p class="card-phone phone-link" data-phone="${escapeHtml(rec.telefone || "")}">${escapeHtml(rec.telefone || "")}</p>
+    ${servicoLine}
+    ${consultaLine}
     <p class="card-resumo">${escapeHtml(rec.resumo_lead || "Sem resumo disponível.")}</p>
     <div class="card-foot">
       <span class="card-time">${timeAgo(rec.ultimo_contato)}</span>
-      ${pausadoBadge}
+      <span style="display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end;">
+        ${confirmadoBadge}${retornoBadge}${pausadoBadge}
+      </span>
     </div>
   `;
 
