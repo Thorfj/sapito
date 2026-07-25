@@ -441,11 +441,16 @@ function getVisibleRecords(){
   });
 }
 
+function updateSubtitle(){
+  document.getElementById("subtitle").textContent = getVisibleRecords().length + " atendimentos";
+}
+
 function applyDateFilter(){
   dateFrom = document.getElementById("dateFrom").value || null;
   dateTo = document.getElementById("dateTo").value || null;
   render();
   renderMetrics();
+  updateSubtitle();
 }
 
 function clearDateFilter(){
@@ -455,6 +460,7 @@ function clearDateFilter(){
   dateTo = null;
   render();
   renderMetrics();
+  updateSubtitle();
 }
 
 function toggleSort(key){
@@ -595,7 +601,7 @@ async function loadData(){
 
     render();
     renderMetrics();
-    document.getElementById("subtitle").textContent = records.length + " atendimentos";
+    updateSubtitle();
     document.getElementById("lastSync").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-BR");
   }catch(err){
     document.getElementById("boardContainer").innerHTML =
