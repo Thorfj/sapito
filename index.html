@@ -286,45 +286,53 @@
     background: var(--surface-2);
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 10px 11px;
+    padding: 12px 13px;
     margin-bottom: 8px;
     cursor: grab;
-    transition: border-color .12s ease;
+    transition: border-color .12s ease, transform .08s ease;
   }
   .card:hover{ border-color: var(--border-strong); }
   .card.dragging{ opacity:0.4; }
-  .card-name{font-size:13px; font-weight:600; margin:0 0 2px;}
-  .card-phone{font-size:11.5px; color:var(--text-muted); margin:0 0 6px;}
+  .card-name{font-size:13.5px; font-weight:600; margin:0 0 3px; letter-spacing:-0.01em;}
+  .card-phone{
+    font-size:11.5px; color:var(--text-dim); margin:0 0 8px;
+    display:inline-flex; align-items:center; gap:4px;
+  }
+  .card-phone::before{ content:"↗"; font-size:10px; opacity:0.7; }
+  .card-phone:hover{ color: var(--frog-text); }
   .card-resumo{
-    font-size:11.5px; color:var(--text-muted); line-height:1.45;
-    margin: 6px 0 6px;
+    font-size:11.5px; color:var(--text-muted); line-height:1.5;
+    margin: 0 0 10px;
     display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical;
     overflow:hidden;
   }
   .card-resumo.expanded{ -webkit-line-clamp: unset; }
+  .card-meta{
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+    margin-bottom: 8px;
+    display:flex; flex-direction:column; gap:4px;
+  }
+  .card-meta-row{
+    font-size:11px; color:var(--text-muted);
+    display:flex; align-items:baseline; gap:5px;
+  }
+  .card-meta-row .meta-icon{ font-size:10px; opacity:0.75; flex-shrink:0; }
+  .card-meta-row .meta-value{ color:var(--text); font-weight:600; }
+  .card-meta-row.meta-alert .meta-value{ color: var(--danger); }
   .card-foot{
     display:flex; align-items:center; justify-content:space-between;
-    margin-top:6px; padding-top:6px; border-top:1px solid var(--border);
+    margin-top:8px; padding-top:8px; border-top:1px solid var(--border);
   }
   .card-time{font-size:10.5px; color:var(--text-dim);}
-  .badge-pausado{
-    font-size:9.5px; color:var(--warn); border:1px solid var(--warn);
-    border-radius:5px; padding:1px 5px;
+  .card-badges{ display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; }
+  .badge{
+    font-size:9.5px; border-radius:5px; padding:2px 6px;
+    display:inline-flex; align-items:center; gap:3px; font-weight:600;
   }
-  .badge-confirmado{
-    font-size:9.5px; color:var(--frog-text); border:1px solid var(--frog);
-    border-radius:5px; padding:1px 5px;
-  }
-  .badge-retorno{
-    font-size:9.5px; color:var(--danger); border:1px solid var(--danger);
-    border-radius:5px; padding:1px 5px;
-  }
-  .card-servico{
-    font-size:11px; color:var(--frog-text); margin:6px 0 3px; font-weight:600;
-  }
-  .card-consulta{
-    font-size:11px; color:var(--text-muted); margin:0 0 6px;
-  }
+  .badge-pausado{ color:var(--warn); background: rgba(224,180,84,0.1); }
+  .badge-confirmado{ color:var(--frog-text); background: rgba(95,217,138,0.12); }
+  .badge-retorno{ color:var(--danger); background: rgba(224,112,95,0.12); }
   .empty-col{
     font-size:11.5px; color:var(--text-dim); text-align:center; padding:20px 8px;
   }
@@ -741,9 +749,9 @@ function renderListView(){
     const selectOptions = COLUMNS.map(c =>
       `<option value="${c.key}" ${c.key === currentStatus ? 'selected' : ''}>${c.label}</option>`
     ).join("");
-    const pausadoBadge = rec.pausado ? '<span class="badge-pausado">pausado</span>' : '';
-    const confirmadoBadge = rec.confirmacao_enviada ? '<span class="badge-confirmado">confirmado</span>' : '';
-    const retornoBadge = isReturnDue(rec) ? '<span class="badge-retorno">retorno pendente</span>' : '';
+    const pausadoBadge = rec.pausado ? '<span class="badge badge-pausado">pausado</span>' : '';
+    const confirmadoBadge = rec.confirmacao_enviada ? '<span class="badge badge-confirmado">confirmado</span>' : '';
+    const retornoBadge = isReturnDue(rec) ? '<span class="badge badge-retorno">retorno pendente</span>' : '';
     const servico = rec.servico_realizado || rec.servico_agendado || "—";
 
     tr.innerHTML = `
@@ -788,28 +796,32 @@ function buildCard(rec){
   card.draggable = true;
   card.dataset.id = rec.id;
 
-  const pausadoBadge = rec.pausado ? '<span class="badge-pausado">pausado</span>' : '';
-  const confirmadoBadge = rec.confirmacao_enviada ? '<span class="badge-confirmado">confirmado</span>' : '';
-  const retornoBadge = isReturnDue(rec) ? '<span class="badge-retorno">retorno pendente</span>' : '';
+  const pausadoBadge = rec.pausado ? '<span class="badge badge-pausado">pausado</span>' : '';
+  const confirmadoBadge = rec.confirmacao_enviada ? '<span class="badge badge-confirmado">confirmado</span>' : '';
+  const returnDue = isReturnDue(rec);
+  const retornoBadge = returnDue ? '<span class="badge badge-retorno">retorno pendente</span>' : '';
 
   const servico = rec.servico_realizado || rec.servico_agendado;
-  const servicoLine = servico ? `<p class="card-servico">Serviço: ${escapeHtml(servico)}</p>` : '';
+  const servicoRow = servico
+    ? `<div class="card-meta-row"><span class="meta-icon">◆</span>Serviço: <span class="meta-value">${escapeHtml(servico)}</span></div>`
+    : '';
 
   const reminderDate = nextReminderDate(rec);
-  const reminderLine = reminderDate
-    ? `<p class="card-consulta">Lembrete de retorno: ${reminderDate.toLocaleDateString("pt-BR")}</p>` : '';
+  const reminderRow = reminderDate
+    ? `<div class="card-meta-row ${returnDue ? 'meta-alert' : ''}"><span class="meta-icon">◷</span>Lembrete: <span class="meta-value">${reminderDate.toLocaleDateString("pt-BR")}</span></div>`
+    : '';
+
+  const metaBlock = (servicoRow || reminderRow)
+    ? `<div class="card-meta">${servicoRow}${reminderRow}</div>` : '';
 
   card.innerHTML = `
     <p class="card-name">${escapeHtml(rec.nomewpp || "Sem nome")}</p>
     <p class="card-phone phone-link" data-phone="${escapeHtml(rec.telefone || "")}">${escapeHtml(rec.telefone || "")}</p>
     <p class="card-resumo">${escapeHtml(rec.resumo_lead || "Sem resumo disponível.")}</p>
-    ${servicoLine}
-    ${reminderLine}
+    ${metaBlock}
     <div class="card-foot">
       <span class="card-time">${timeAgo(rec.ultimo_contato)}</span>
-      <span style="display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end;">
-        ${confirmadoBadge}${retornoBadge}${pausadoBadge}
-      </span>
+      <span class="card-badges">${confirmadoBadge}${retornoBadge}${pausadoBadge}</span>
     </div>
   `;
 
