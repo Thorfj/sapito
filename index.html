@@ -406,6 +406,7 @@ const COLUMNS = [
   { key: "agendamento_marcado", label: "Consulta agendada" },
   { key: "consulta_confirmada", label: "Consulta confirmada" },
   { key: "reagendamento", label: "Reagendamento" },
+  { key: "perdidos", label: "Perdidos" },
   { key: "atendimento_finalizado", label: "Atendimento finalizado" }
 ];
 
@@ -488,7 +489,7 @@ function timeAgo(iso){
   return months + "m atrás";
 }
 
-const STUCK_EXCLUDE = ["agendamento_marcado", "consulta_confirmada", "atendimento_finalizado"];
+const STUCK_EXCLUDE = ["agendamento_marcado", "consulta_confirmada", "atendimento_finalizado", "perdidos"];
 const ONE_DAY_MS = 86400000;
 
 function daysSince(iso){
@@ -808,7 +809,7 @@ function buildCard(rec){
 
   const reminderDate = nextReminderDate(rec);
   const reminderRow = reminderDate
-    ? `<div class="card-meta-row ${returnDue ? 'meta-alert' : ''}"><span class="meta-icon">◷</span>Lembrete: <span class="meta-value">${reminderDate.toLocaleDateString("pt-BR")}</span></div>`
+    ? `<div class="card-meta-row ${returnDue ? 'meta-alert' : ''}"><span class="meta-icon">◷</span>Mensagem programada: <span class="meta-value">${reminderDate.toLocaleDateString("pt-BR")}</span></div>`
     : '';
 
   const metaBlock = (servicoRow || reminderRow)
