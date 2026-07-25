@@ -320,7 +320,7 @@
     border-radius:5px; padding:1px 5px;
   }
   .card-servico{
-    font-size:11px; color:var(--frog-text); margin:0 0 3px; font-weight:600;
+    font-size:11px; color:var(--frog-text); margin:6px 0 3px; font-weight:600;
   }
   .card-consulta{
     font-size:11px; color:var(--text-muted); margin:0 0 6px;
@@ -773,6 +773,15 @@ function formatDate(iso){
   return d.toLocaleDateString("pt-BR");
 }
 
+function nextReminderDate(rec){
+  if(!rec.servico_realizado || !rec.data_ultima_consulta_realizada) return null;
+  const recorrencia = servicesMap[rec.servico_realizado];
+  if(recorrencia === undefined) return null;
+  const d = new Date(rec.data_ultima_consulta_realizada);
+  d.setDate(d.getDate() + recorrencia);
+  return d;
+}
+
 function buildCard(rec){
   const card = document.createElement("div");
   card.className = "card";
@@ -784,17 +793,18 @@ function buildCard(rec){
   const retornoBadge = isReturnDue(rec) ? '<span class="badge-retorno">retorno pendente</span>' : '';
 
   const servico = rec.servico_realizado || rec.servico_agendado;
-  const servicoLine = servico ? `<p class="card-servico">${escapeHtml(servico)}</p>` : '';
+  const servicoLine = servico ? `<p class="card-servico">Serviço: ${escapeHtml(servico)}</p>` : '';
 
-  const consultaLine = rec.data_consulta
-    ? `<p class="card-consulta">Consulta: ${formatDate(rec.data_consulta)}</p>` : '';
+  const reminderDate = nextReminderDate(rec);
+  const reminderLine = reminderDate
+    ? `<p class="card-consulta">Lembrete de retorno: ${reminderDate.toLocaleDateString("pt-BR")}</p>` : '';
 
   card.innerHTML = `
     <p class="card-name">${escapeHtml(rec.nomewpp || "Sem nome")}</p>
     <p class="card-phone phone-link" data-phone="${escapeHtml(rec.telefone || "")}">${escapeHtml(rec.telefone || "")}</p>
-    ${servicoLine}
-    ${consultaLine}
     <p class="card-resumo">${escapeHtml(rec.resumo_lead || "Sem resumo disponível.")}</p>
+    ${servicoLine}
+    ${reminderLine}
     <div class="card-foot">
       <span class="card-time">${timeAgo(rec.ultimo_contato)}</span>
       <span style="display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end;">
